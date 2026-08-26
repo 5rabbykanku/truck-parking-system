@@ -1,4 +1,5 @@
 from datetime import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
 from app import db
 
 
@@ -17,8 +18,7 @@ class Site(db.Model):
     total_spaces = db.Column(db.Integer, nullable=False, default=0)
     hourly_rate = db.Column(db.Numeric(10, 2), nullable=False, default=0)
     daily_rate = db.Column(db.Numeric(10, 2), nullable=False, default=0)
-    manager_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
-
+    manager_id = db.Column(db.Integer, db.ForeignKey("users.id", use_alter=True, name="fk_sites_manager_id"), nullable=True)
     manager = db.relationship("User", foreign_keys=[manager_id], back_populates="managed_site")
     employees = db.relationship("User", foreign_keys="User.site_id", back_populates="site")
     parking_sessions = db.relationship("ParkingSession", back_populates="site")
@@ -41,6 +41,12 @@ class User(db.Model):
     managed_site = db.relationship("Site", foreign_keys="Site.manager_id", back_populates="manager", uselist=False)
     sessions_logged = db.relationship("ParkingSession", back_populates="employee")
     verification_scans = db.relationship("VerificationScan", back_populates="employee")
+    
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
 
 
 class Truck(db.Model):
