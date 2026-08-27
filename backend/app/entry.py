@@ -1,0 +1,82 @@
+import random
+import io
+import base64
+import qrcode
+from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt, get_jwt_identity
+from app.decorators import requires_role
+from app.models import Truck, Driver, ParkingSession, User
+from app import db
+def generate_qr_code(data):
+    img = qrcode.make(data)
+    buffer = io.BytesIO()
+    img.save(buffer, format="PNG")
+    encoded = base64.b64encode(buffer.getvalue()).decode("utf-8")
+    return f"data:image/png;base64,{encoded}"
+entry_bp = Blueprint("entry", __name__)
+def generate_unique_parking_code():
+    while True:
+        code = str(random.randint(100000, 999999))
+        exists = ParkingSession.query.filter_by(parking_code=code).first()
+        if not exists:
+            return code
+
+@entry_bp.route("/sessions/entry", methods=["POST"])
+@requires_role("employee")
+def create_entry():
+    data = request.get_json()
+
+    required_fields = ["driver_name", "phone_number", "plate_number", "truck_type"]
+    if not data or not all(data.get(f) for f in required_fields):
+        return jsonify({"error": "driver_name, phone_number, plate_number, and truck_type are required"}), 400
+
+    claims = get_jwt()
+    employee_id = int(get_jwt_identity())
+    site_id = claims.get("site_id")
+
+    if not site_id:
+        return jsonify({"error": "Employee is not assigned to a site"}), 400
+
+    truck = Truck.query.filter_by(plate_number=data["plate_number"]).first()
+    if not truck:
+        truck = Truck(
+            plate_number=data["plate_number"],
+            truck_type=data["truck_type"]
+        )
+        db.session.add(truck)
+        db.session.flush()
+
+    driver = Driver.query.filter_by(phone_number=data["phone_number"]).first()
+    if not driver:
+        driver = Driver(
+            name=data["driver_name"],
+            phone_number=data["phone_number"]
+        )
+        db.session.add(driver)
+        db.session.flush()
+
+    parking_code = generate_unique_parking_code()
+
+    session = ParkingSession(
+        truck_id=truck.id,
+        driver_id=driver.id,
+        site_id=site_id,
+        employee_id=employee_id,
+        status="active",
+        vehicle_photo_url=data.get("vehicle_photo_url"),
+        driver_photo_url=data.get("driver_photo_url"),
+        parking_code=parking_code,
+        qr_code_data=generate_qr_code(parking_code)
+    )
+    db.session.add(session)
+    db.session.commit()
+
+    return jsonify({
+        "session_id": session.id,
+        "parking_code": session.parking_code,
+        "qr_code_data": session.qr_code_data,
+        "truck": {"id": truck.id, "plate_number": truck.plate_number, "truck_type": truck.truck_type},
+        "driver": {"id": driver.id, "name": driver.name, "phone_number": driver.phone_number},
+        "entry_time": session.entry_time.isoformat(),
+        "status": session.status
+    }), 201
