@@ -1,0 +1,239 @@
+{
+  "info": {
+    "_postman_id": "22ae7ae8-0ec5-414e-9b14-32aa310bc587",
+    "name": "Truck Parking System",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "57769026",
+    "_collection_link": "https://go.postman.co/collection/57769026-22ae7ae8-0ec5-414e-9b14-32aa310bc587?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Login - Employee",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const response = pm.response.json();\r\n\r\nif (response.access_token) {\r\n    pm.collectionVariables.set(\"employee_token\", response.access_token);\r\n    console.log(\"Employee token saved\");\r\n}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"email\": \"employee@example.com\",\r\n  \"password\": \"EmployeePass123!\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/login",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Login - Manager",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const response = pm.response.json();\r\n\r\nif (response.access_token) {\r\n    pm.collectionVariables.set(\"manager_token\", response.access_token);\r\n    console.log(\"Manager token saved\");\r\n}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"email\": \"manager@example.com\",\r\n  \"password\": \"ManagerPass123!\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/login",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Login - Admin",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const response = pm.response.json();\r\n\r\nif (response.access_token) {\r\n    pm.collectionVariables.set(\"admin_token\", response.access_token);\r\n    console.log(\"Admin token saved\");\r\n}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"email\": \"admin@example.com\",\r\n  \"password\": \"AdminPass123!\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/login",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Truck Entry",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{employee_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"driver_name\": \"Test Driver\",\r\n  \"phone_number\": \"555-7777\",\r\n  \"plate_number\": \"TRK-POSTMAN\",\r\n  \"truck_type\": \"Flatbed\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/sessions/entry",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sessions",
+            "entry"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Entry - Missing Fields",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{employee_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"driver_name\": \"Incomplete\",\r\n  \"phone_number\": \"555-0000\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/sessions/entry",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sessions",
+            "entry"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Entry - Wrong Role",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"driver_name\": \"Test Driver\",\r\n  \"phone_number\": \"555-7777\",\r\n  \"plate_number\": \"TRK-POSTMAN\",\r\n  \"truck_type\": \"Flatbed\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/sessions/entry",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sessions",
+            "entry"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": ""
+    },
+    {
+      "key": "admin_token",
+      "value": ""
+    },
+    {
+      "key": "manager_token",
+      "value": ""
+    },
+    {
+      "key": "employee_token",
+      "value": ""
+    }
+  ]
+}
