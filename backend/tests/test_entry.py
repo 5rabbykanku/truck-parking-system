@@ -1,3 +1,4 @@
+from unittest.mock import patch
 def get_employee_token(client, seed_users):
     response = client.post("/auth/login", json={"email": "employee@test.com", "password": "EmployeePass123!"})
     return response.get_json()["access_token"]
@@ -24,6 +25,7 @@ def test_create_entry_success(client, seed_users):
     assert data["qr_code_data"].startswith("data:image/png;base64,")
     assert data["status"] == "active"
     assert data["truck"]["plate_number"] == "TRK-001"
+
     assert data["driver"]["phone_number"] == "555-1234"
 
 
@@ -91,6 +93,7 @@ def test_reuses_existing_driver_by_phone(client, seed_users):
 
 
 def test_missing_required_fields(client, seed_users):
+    
     token = get_employee_token(client, seed_users)
 
     response = client.post(
@@ -121,3 +124,28 @@ def test_entry_rejects_non_employee(client, seed_users):
     )
 
     assert response.status_code == 403
+
+
+def test_parking_code_collision_retries(client, seed_users, app):
+    token = get_employee_token(client, seed_users)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Create a first entry to occupy a known code
+    with patch("app.entry.random.randint", return_value=555555):
+        response1 = client.post(
+            "/sessions/entry",
+            json={"driver_name": "First Driver", "phone_number": "555-1111", "plate_number": "TRK-COLLIDE-1", "truck_type": "Flatbed"},
+            headers=headers
+        )
+    assert response1.get_json()["parking_code"] == "555555"
+
+    # Force the SAME code first (collision), then a different one on retry
+    with patch("app.entry.random.randint", side_effect=[555555, 777777]):
+        response2 = client.post(
+            "/sessions/entry",
+            json={"driver_name": "Second Driver", "phone_number": "555-2222", "plate_number": "TRK-COLLIDE-2", "truck_type": "Flatbed"},
+            headers=headers
+        )
+
+    assert response2.status_code == 201
+    assert response2.get_json()["parking_code"] == "777777"
