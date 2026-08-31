@@ -80,3 +80,29 @@ def create_entry():
         "entry_time": session.entry_time.isoformat(),
         "status": session.status
     }), 201
+
+@entry_bp.route("/sessions/lookup/<code>", methods=["GET"])
+@requires_role("employee")
+def lookup_session(code):
+    session = ParkingSession.query.filter_by(parking_code=code).first()
+
+    if not session:
+        return jsonify({"error": "No session found with that code"}), 404
+
+    return jsonify({
+        "session_id": session.id,
+        "parking_code": session.parking_code,
+        "status": session.status,
+        "entry_time": session.entry_time.isoformat(),
+        "exit_time": session.exit_time.isoformat() if session.exit_time else None,
+        "truck": {
+            "id": session.truck.id,
+            "plate_number": session.truck.plate_number,
+            "truck_type": session.truck.truck_type
+        },
+        "driver": {
+            "id": session.driver.id,
+            "name": session.driver.name,
+            "phone_number": session.driver.phone_number
+        }
+    }), 200

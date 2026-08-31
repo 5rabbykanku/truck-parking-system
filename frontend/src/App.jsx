@@ -6,6 +6,7 @@ import AdminDashboard from './pages/AdminDashboard'
 import ManagerDashboard from './pages/ManagerDashboard'
 import EmployeeDashboard from './pages/EmployeeDashboard'
 import EntryForm from './pages/EntryForm'
+import SessionLookup from './pages/SessionLookup'
 
 function App() {
   return (
@@ -32,7 +33,7 @@ function App() {
             }
           />
 
-                    <Route
+           <Route
             path="/employee"
             element={
               <ProtectedRoute allowedRoles={['employee']}>
@@ -46,6 +47,14 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['employee']}>
                 <EntryForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/employee/lookup"
+            element={
+              <ProtectedRoute allowedRoles={['employee']}>
+                <SessionLookup />
               </ProtectedRoute>
             }
           />

@@ -149,3 +149,47 @@ def test_parking_code_collision_retries(client, seed_users, app):
 
     assert response2.status_code == 201
     assert response2.get_json()["parking_code"] == "777777"
+    
+def test_lookup_active_session_by_code(client, seed_users):
+    token = get_employee_token(client, seed_users)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    entry_response = client.post(
+        "/sessions/entry",
+        json={"driver_name": "Lookup Driver", "phone_number": "555-5000", "plate_number": "TRK-L1", "truck_type": "Flatbed"},
+        headers=headers
+    )
+    code = entry_response.get_json()["parking_code"]
+
+    lookup_response = client.get(f"/sessions/lookup/{code}", headers=headers)
+
+    assert lookup_response.status_code == 200
+    data = lookup_response.get_json()
+    assert data["parking_code"] == code
+    assert data["status"] == "active"
+    assert data["exit_time"] is None
+    assert data["truck"]["plate_number"] == "TRK-L1"
+
+
+def test_lookup_nonexistent_code_returns_404(client, seed_users):
+    token = get_employee_token(client, seed_users)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    response = client.get("/sessions/lookup/000000", headers=headers)
+
+    assert response.status_code == 404
+    assert response.get_json()["error"] == "No session found with that code"
+
+
+def test_lookup_requires_token(client, seed_users):
+    response = client.get("/sessions/lookup/123456")
+    assert response.status_code == 401
+
+
+def test_lookup_rejects_non_employee(client, seed_users):
+    login_response = client.post("/auth/login", json={"email": "admin@test.com", "password": "AdminPass123!"})
+    token = login_response.get_json()["access_token"]
+
+    response = client.get("/sessions/lookup/123456", headers={"Authorization": f"Bearer {token}"})
+
+    assert response.status_code == 403

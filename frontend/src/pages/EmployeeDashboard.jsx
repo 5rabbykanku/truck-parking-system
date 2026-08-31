@@ -11,11 +11,16 @@ function EmployeeDashboard() {
         <button className="btn btn-outline-secondary" onClick={logout}>Log Out</button>
       </div>
       <p>Welcome, {user?.name} (Employee)</p>
-      <Link to="/employee/entry" className="btn btn-primary">
-        New Truck Entry
-      </Link>
-      <p className="text-muted mt-3">Session lookup and exit tools come later in the build.</p>
-    </div>
+            <div className="d-flex gap-2 flex-wrap">
+        <Link to="/employee/entry" className="btn btn-primary">
+          New Truck Entry
+        </Link>
+        <Link to="/employee/lookup" className="btn btn-outline-primary">
+          Session Lookup
+        </Link>
+      </div>
+            <p className="text-muted mt-3">Exit tools come later in the build.</p>
+      </div>
   )
 }
 
