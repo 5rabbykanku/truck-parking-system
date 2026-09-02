@@ -1,7 +1,26 @@
 import random
 import io
 import base64
+import math
 import qrcode
+from datetime import datetime
+def calculate_fee(entry_time, end_time, hourly_rate, daily_rate):
+    hourly_rate = float(hourly_rate)
+    daily_rate = float(daily_rate)
+
+    duration_seconds = (end_time - entry_time).total_seconds()
+    total_hours = math.ceil(duration_seconds / 3600)
+    if total_hours < 1:
+        total_hours = 1
+
+    full_days = total_hours // 24
+    remaining_hours = total_hours % 24
+
+    fee = full_days * min(24 * hourly_rate, daily_rate)
+    if remaining_hours > 0:
+        fee += min(remaining_hours * hourly_rate, daily_rate)
+
+    return round(fee, 2)
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt, get_jwt_identity
 from app.decorators import requires_role
@@ -105,4 +124,23 @@ def lookup_session(code):
             "name": session.driver.name,
             "phone_number": session.driver.phone_number
         }
+    }), 200
+
+@entry_bp.route("/sessions/lookup/<code>/fee", methods=["GET"])
+@requires_role("employee")
+def get_session_fee(code):
+    session = ParkingSession.query.filter_by(parking_code=code).first()
+
+    if not session:
+        return jsonify({"error": "No session found with that code"}), 404
+
+    end_time = session.exit_time if session.exit_time else datetime.utcnow()
+    fee = calculate_fee(session.entry_time, end_time, session.site.hourly_rate, session.site.daily_rate)
+
+    return jsonify({
+        "parking_code": session.parking_code,
+        "status": session.status,
+        "entry_time": session.entry_time.isoformat(),
+        "as_of": end_time.isoformat(),
+        "calculated_fee": fee
     }), 200

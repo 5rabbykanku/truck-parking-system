@@ -10,18 +10,22 @@ function SessionLookup() {
 
   const { token } = useAuth()
 
-  const handleSubmit = async (e) => {
+    const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setSession(null)
     setLoading(true)
 
     try {
-      const response = await axios.get(
-        `http://127.0.0.1:5000/sessions/lookup/${code}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
-      setSession(response.data)
+      const [sessionResponse, feeResponse] = await Promise.all([
+        axios.get(`http://127.0.0.1:5000/sessions/lookup/${code}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`http://127.0.0.1:5000/sessions/lookup/${code}/fee`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ])
+      setSession({ ...sessionResponse.data, calculated_fee: feeResponse.data.calculated_fee })
     } catch (err) {
       if (err.response && err.response.data && err.response.data.error) {
         setError(err.response.data.error)
@@ -53,10 +57,11 @@ function SessionLookup() {
 
           <p className="mb-1"><strong>Truck:</strong> {session.truck.plate_number} ({session.truck.truck_type})</p>
           <p className="mb-1"><strong>Driver:</strong> {session.driver.name} ({session.driver.phone_number})</p>
-          <p className="mb-1"><strong>Entry:</strong> {new Date(session.entry_time).toLocaleString()}</p>
+                    <p className="mb-1"><strong>Entry:</strong> {new Date(session.entry_time).toLocaleString()}</p>
           {session.exit_time && (
             <p className="mb-1"><strong>Exit:</strong> {new Date(session.exit_time).toLocaleString()}</p>
           )}
+          <p className="mb-1"><strong>Fee:</strong> ${session.calculated_fee.toFixed(2)}</p>
 
           <button className="btn btn-primary w-100 mt-4" onClick={handleNewLookup}>
             New Lookup

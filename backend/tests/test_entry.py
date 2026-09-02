@@ -193,3 +193,105 @@ def test_lookup_rejects_non_employee(client, seed_users):
     response = client.get("/sessions/lookup/123456", headers={"Authorization": f"Bearer {token}"})
 
     assert response.status_code == 403
+    
+from datetime import datetime, timedelta
+
+
+def test_fee_one_hour_minimum(client, seed_users):
+    token = get_employee_token(client, seed_users)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    entry_response = client.post(
+        "/sessions/entry",
+        json={"driver_name": "Fee Driver", "phone_number": "555-6000", "plate_number": "TRK-F1", "truck_type": "Flatbed"},
+        headers=headers
+    )
+    code = entry_response.get_json()["parking_code"]
+
+    fee_response = client.get(f"/sessions/lookup/{code}/fee", headers=headers)
+
+    assert fee_response.status_code == 200
+    assert fee_response.get_json()["calculated_fee"] == 5.0
+
+
+def test_fee_under_daily_cap(client, seed_users, app):
+    from app.models import ParkingSession
+    from app import db
+
+    token = get_employee_token(client, seed_users)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    entry_response = client.post(
+        "/sessions/entry",
+        json={"driver_name": "Fee Driver 2", "phone_number": "555-6001", "plate_number": "TRK-F2", "truck_type": "Flatbed"},
+        headers=headers
+    )
+    code = entry_response.get_json()["parking_code"]
+
+    with app.app_context():
+        session = ParkingSession.query.filter_by(parking_code=code).first()
+        session.entry_time = datetime.utcnow() - timedelta(hours=3)
+        session.exit_time = session.entry_time + timedelta(hours=3)
+        db.session.commit()
+
+    fee_response = client.get(f"/sessions/lookup/{code}/fee", headers=headers)
+
+    assert fee_response.get_json()["calculated_fee"] == 15.0
+
+
+def test_fee_hits_daily_cap(client, seed_users, app):
+    from app.models import ParkingSession
+    from app import db
+
+    token = get_employee_token(client, seed_users)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    entry_response = client.post(
+        "/sessions/entry",
+        json={"driver_name": "Fee Driver 3", "phone_number": "555-6002", "plate_number": "TRK-F3", "truck_type": "Flatbed"},
+        headers=headers
+    )
+    code = entry_response.get_json()["parking_code"]
+
+    with app.app_context():
+        session = ParkingSession.query.filter_by(parking_code=code).first()
+        session.entry_time = datetime.utcnow() - timedelta(hours=30)
+        session.exit_time = session.entry_time + timedelta(hours=30)
+        db.session.commit()
+
+    fee_response = client.get(f"/sessions/lookup/{code}/fee", headers=headers)
+
+    assert fee_response.get_json()["calculated_fee"] == 60.0
+
+
+def test_fee_uses_exit_time_when_completed(client, seed_users, app):
+    from app.models import ParkingSession
+    from app import db
+
+    token = get_employee_token(client, seed_users)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    entry_response = client.post(
+        "/sessions/entry",
+        json={"driver_name": "Fee Driver 4", "phone_number": "555-6003", "plate_number": "TRK-F4", "truck_type": "Flatbed"},
+        headers=headers
+    )
+    code = entry_response.get_json()["parking_code"]
+
+    with app.app_context():
+        session = ParkingSession.query.filter_by(parking_code=code).first()
+        session.status = "completed"
+        session.exit_time = session.entry_time + timedelta(hours=5)
+        db.session.commit()
+
+    fee_response = client.get(f"/sessions/lookup/{code}/fee", headers=headers)
+
+    assert fee_response.get_json()["calculated_fee"] == 25.0
+
+def test_fee_lookup_nonexistent_code(client, seed_users):
+    token = get_employee_token(client, seed_users)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    response = client.get("/sessions/lookup/000000/fee", headers=headers)
+
+    assert response.status_code == 404
