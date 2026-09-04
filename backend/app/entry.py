@@ -144,3 +144,37 @@ def get_session_fee(code):
         "as_of": end_time.isoformat(),
         "calculated_fee": fee
     }), 200
+
+@entry_bp.route("/sessions/lookup/<code>/pay", methods=["POST"])
+@requires_role("employee")
+def confirm_payment(code):
+    data = request.get_json()
+
+    if not data or not data.get("payment_method"):
+        return jsonify({"error": "payment_method is required"}), 400
+
+    valid_methods = ["cash", "card", "mobile"]
+    if data["payment_method"] not in valid_methods:
+        return jsonify({"error": f"payment_method must be one of {valid_methods}"}), 400
+
+    session = ParkingSession.query.filter_by(parking_code=code).first()
+
+    if not session:
+        return jsonify({"error": "No session found with that code"}), 404
+
+    if session.payment_confirmed_at:
+        return jsonify({"error": "This session has already been paid"}), 400
+
+    fee = calculate_fee(session.entry_time, datetime.utcnow(), session.site.hourly_rate, session.site.daily_rate)
+
+    session.fee_amount = fee
+    session.payment_method = data["payment_method"]
+    session.payment_confirmed_at = datetime.utcnow()
+    db.session.commit()
+
+    return jsonify({
+        "parking_code": session.parking_code,
+        "fee_amount": float(session.fee_amount),
+        "payment_method": session.payment_method,
+        "payment_confirmed_at": session.payment_confirmed_at.isoformat()
+    }), 200

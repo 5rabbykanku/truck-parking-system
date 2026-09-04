@@ -295,3 +295,103 @@ def test_fee_lookup_nonexistent_code(client, seed_users):
     response = client.get("/sessions/lookup/000000/fee", headers=headers)
 
     assert response.status_code == 404
+    
+def test_confirm_payment_success(client, seed_users):
+    token = get_employee_token(client, seed_users)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    entry_response = client.post(
+        "/sessions/entry",
+        json={"driver_name": "Pay Driver", "phone_number": "555-7100", "plate_number": "TRK-P1", "truck_type": "Flatbed"},
+        headers=headers
+    )
+    code = entry_response.get_json()["parking_code"]
+
+    pay_response = client.post(
+        f"/sessions/lookup/{code}/pay",
+        json={"payment_method": "cash"},
+        headers=headers
+    )
+
+    assert pay_response.status_code == 200
+    data = pay_response.get_json()
+    assert data["fee_amount"] == 5.0
+    assert data["payment_method"] == "cash"
+    assert data["payment_confirmed_at"] is not None
+
+
+def test_confirm_payment_rejects_duplicate(client, seed_users):
+    token = get_employee_token(client, seed_users)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    entry_response = client.post(
+        "/sessions/entry",
+        json={"driver_name": "Pay Driver 2", "phone_number": "555-7101", "plate_number": "TRK-P2", "truck_type": "Flatbed"},
+        headers=headers
+    )
+    code = entry_response.get_json()["parking_code"]
+
+    client.post(f"/sessions/lookup/{code}/pay", json={"payment_method": "cash"}, headers=headers)
+    second_response = client.post(f"/sessions/lookup/{code}/pay", json={"payment_method": "card"}, headers=headers)
+
+    assert second_response.status_code == 400
+    assert second_response.get_json()["error"] == "This session has already been paid"
+
+
+def test_confirm_payment_rejects_invalid_method(client, seed_users):
+    token = get_employee_token(client, seed_users)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    entry_response = client.post(
+        "/sessions/entry",
+        json={"driver_name": "Pay Driver 3", "phone_number": "555-7102", "plate_number": "TRK-P3", "truck_type": "Flatbed"},
+        headers=headers
+    )
+    code = entry_response.get_json()["parking_code"]
+
+    response = client.post(f"/sessions/lookup/{code}/pay", json={"payment_method": "bitcoin"}, headers=headers)
+
+    assert response.status_code == 400
+
+
+def test_confirm_payment_missing_method(client, seed_users):
+    token = get_employee_token(client, seed_users)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    entry_response = client.post(
+        "/sessions/entry",
+        json={"driver_name": "Pay Driver 4", "phone_number": "555-7103", "plate_number": "TRK-P4", "truck_type": "Flatbed"},
+        headers=headers
+    )
+    code = entry_response.get_json()["parking_code"]
+
+    response = client.post(f"/sessions/lookup/{code}/pay", json={}, headers=headers)
+
+    assert response.status_code == 400
+
+
+def test_confirm_payment_nonexistent_code(client, seed_users):
+    token = get_employee_token(client, seed_users)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    response = client.post("/sessions/lookup/000000/pay", json={"payment_method": "cash"}, headers=headers)
+
+    assert response.status_code == 404
+
+
+def test_confirm_payment_requires_token(client, seed_users):
+    response = client.post("/sessions/lookup/123456/pay", json={"payment_method": "cash"})
+    assert response.status_code == 401
+
+
+def test_confirm_payment_rejects_non_employee(client, seed_users):
+    login_response = client.post("/auth/login", json={"email": "admin@test.com", "password": "AdminPass123!"})
+    token = login_response.get_json()["access_token"]
+
+    response = client.post(
+        "/sessions/lookup/123456/pay",
+        json={"payment_method": "cash"},
+        headers={"Authorization": f"Bearer {token}"}
+    )
+
+    assert response.status_code == 403

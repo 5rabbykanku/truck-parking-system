@@ -38,7 +38,79 @@ describe('SessionLookup', () => {
     expect(screen.getByText(/TRK-001/)).toBeInTheDocument()
     expect(screen.getByText(/John Doe/)).toBeInTheDocument()
   })
+  it('Given an active session, When the employee confirms payment, Then a success message is shown', async () => {
+    axios.get
+      .mockResolvedValueOnce({
+        data: {
+          parking_code: '123456',
+          status: 'active',
+          entry_time: '2026-08-31T10:00:00',
+          exit_time: null,
+          truck: { plate_number: 'TRK-001', truck_type: 'Flatbed' },
+          driver: { name: 'John Doe', phone_number: '555-1234' },
+        },
+      })
+      .mockResolvedValueOnce({ data: { calculated_fee: 10.0 } })
 
+    axios.post.mockResolvedValue({
+      data: {
+        parking_code: '123456',
+        fee_amount: 10.0,
+        payment_method: 'cash',
+        payment_confirmed_at: '2026-08-31T12:00:00',
+      },
+    })
+
+    render(<SessionLookup />)
+
+    await userEvent.type(screen.getByLabelText(/parking code/i), '123456')
+    await userEvent.click(screen.getByRole('button', { name: /look up/i }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /confirm payment/i })).toBeInTheDocument()
+    })
+
+    await userEvent.click(screen.getByRole('button', { name: /confirm payment/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/payment confirmed/i)).toBeInTheDocument()
+    })
+    expect(screen.queryByRole('button', { name: /confirm payment/i })).not.toBeInTheDocument()
+  })
+
+  it('Given payment confirmation fails, When the employee confirms payment, Then an error message is shown', async () => {
+    axios.get
+      .mockResolvedValueOnce({
+        data: {
+          parking_code: '123456',
+          status: 'active',
+          entry_time: '2026-08-31T10:00:00',
+          exit_time: null,
+          truck: { plate_number: 'TRK-001', truck_type: 'Flatbed' },
+          driver: { name: 'John Doe', phone_number: '555-1234' },
+        },
+      })
+      .mockResolvedValueOnce({ data: { calculated_fee: 10.0 } })
+
+    axios.post.mockRejectedValue({
+      response: { data: { error: 'This session has already been paid' } },
+    })
+
+    render(<SessionLookup />)
+
+    await userEvent.type(screen.getByLabelText(/parking code/i), '123456')
+    await userEvent.click(screen.getByRole('button', { name: /look up/i }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /confirm payment/i })).toBeInTheDocument()
+    })
+
+    await userEvent.click(screen.getByRole('button', { name: /confirm payment/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('This session has already been paid')).toBeInTheDocument()
+    })
+  })
     it('Given a completed session code, When the employee looks it up, Then a Completed badge is shown', async () => {
     axios.get
       .mockResolvedValueOnce({

@@ -7,10 +7,12 @@ function SessionLookup() {
   const [session, setSession] = useState(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-
+  const [paymentMethod, setPaymentMethod] = useState('cash')
+  const [paying, setPaying] = useState(false)
+  const [paymentConfirmed, setPaymentConfirmed] = useState(null)
   const { token } = useAuth()
 
-    const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setSession(null)
@@ -41,6 +43,29 @@ function SessionLookup() {
     setSession(null)
     setCode('')
     setError('')
+    setPaymentConfirmed(null)
+  }
+
+  const handleConfirmPayment = async () => {
+    setPaying(true)
+    setError('')
+
+    try {
+      const response = await axios.post(
+        `http://127.0.0.1:5000/sessions/lookup/${session.parking_code}/pay`,
+        { payment_method: paymentMethod },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      setPaymentConfirmed(response.data)
+    } catch (err) {
+      if (err.response && err.response.data && err.response.data.error) {
+        setError(err.response.data.error)
+      } else {
+        setError('Something went wrong. Please try again.')
+      }
+    } finally {
+      setPaying(false)
+    }
   }
 
   if (session) {
@@ -57,13 +82,39 @@ function SessionLookup() {
 
           <p className="mb-1"><strong>Truck:</strong> {session.truck.plate_number} ({session.truck.truck_type})</p>
           <p className="mb-1"><strong>Driver:</strong> {session.driver.name} ({session.driver.phone_number})</p>
-                    <p className="mb-1"><strong>Entry:</strong> {new Date(session.entry_time).toLocaleString()}</p>
+          <p className="mb-1"><strong>Entry:</strong> {new Date(session.entry_time).toLocaleString()}</p>
           {session.exit_time && (
             <p className="mb-1"><strong>Exit:</strong> {new Date(session.exit_time).toLocaleString()}</p>
           )}
           <p className="mb-1"><strong>Fee:</strong> ${session.calculated_fee.toFixed(2)}</p>
 
-          <button className="btn btn-primary w-100 mt-4" onClick={handleNewLookup}>
+          {paymentConfirmed && (
+            <div className="alert alert-success py-2 mt-3">
+              Payment confirmed: ${paymentConfirmed.fee_amount.toFixed(2)} via {paymentConfirmed.payment_method}
+            </div>
+          )}
+
+          {isActive && !paymentConfirmed && (
+            <div className="mt-3">
+              <label htmlFor="paymentMethod" className="form-label">Payment Method</label>
+              <select
+                id="paymentMethod"
+                className="form-select mb-2"
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+              >
+                <option value="cash">Cash</option>
+                <option value="card">Card</option>
+                <option value="mobile">Mobile</option>
+              </select>
+              {error && <div className="alert alert-danger py-2">{error}</div>}
+              <button className="btn btn-success w-100" onClick={handleConfirmPayment} disabled={paying}>
+                {paying ? 'Confirming...' : 'Confirm Payment'}
+              </button>
+            </div>
+          )}
+
+          <button className="btn btn-primary w-100 mt-3" onClick={handleNewLookup}>
             New Lookup
           </button>
         </div>
@@ -86,7 +137,7 @@ function SessionLookup() {
             required
           />
         </div>
-                {error && <div className="alert alert-danger py-2">{error}</div>}
+        {error && <div className="alert alert-danger py-2">{error}</div>}
         <button type="submit" className="btn btn-primary w-100" disabled={loading}>
           {loading ? 'Looking up...' : 'Look Up'}
         </button>
