@@ -178,3 +178,30 @@ def confirm_payment(code):
         "payment_method": session.payment_method,
         "payment_confirmed_at": session.payment_confirmed_at.isoformat()
     }), 200
+
+@entry_bp.route("/sessions/lookup/<code>/exit", methods=["POST"])
+@requires_role("employee")
+def process_exit(code):
+    session = ParkingSession.query.filter_by(parking_code=code).first()
+
+    if not session:
+        return jsonify({"error": "No session found with that code"}), 404
+
+    if session.status == "completed":
+        return jsonify({"error": "This session has already been exited"}), 400
+
+    if not session.payment_confirmed_at:
+        return jsonify({"error": "Payment must be confirmed before exit"}), 400
+
+    session.status = "completed"
+    session.exit_time = datetime.utcnow()
+    db.session.commit()
+
+    return jsonify({
+        "parking_code": session.parking_code,
+        "status": session.status,
+        "entry_time": session.entry_time.isoformat(),
+        "exit_time": session.exit_time.isoformat(),
+        "fee_amount": float(session.fee_amount) if session.fee_amount else None,
+        "payment_method": session.payment_method
+    }), 200

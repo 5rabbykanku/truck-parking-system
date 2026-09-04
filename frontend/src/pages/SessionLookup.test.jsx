@@ -13,7 +13,7 @@ describe('SessionLookup', () => {
     useAuth.mockReturnValue({ token: 'fake-token' })
   })
 
-    it('Given a valid active code, When the employee looks it up, Then session details are shown with an Active badge', async () => {
+  it('Given a valid active code, When the employee looks it up, Then session details are shown with an Active badge', async () => {
     axios.get
       .mockResolvedValueOnce({
         data: {
@@ -38,6 +38,7 @@ describe('SessionLookup', () => {
     expect(screen.getByText(/TRK-001/)).toBeInTheDocument()
     expect(screen.getByText(/John Doe/)).toBeInTheDocument()
   })
+
   it('Given an active session, When the employee confirms payment, Then a success message is shown', async () => {
     axios.get
       .mockResolvedValueOnce({
@@ -111,7 +112,88 @@ describe('SessionLookup', () => {
       expect(screen.getByText('This session has already been paid')).toBeInTheDocument()
     })
   })
-    it('Given a completed session code, When the employee looks it up, Then a Completed badge is shown', async () => {
+
+  it('Given a paid session, When the employee confirms exit, Then a success message is shown', async () => {
+    axios.get
+      .mockResolvedValueOnce({
+        data: {
+          parking_code: '123456',
+          status: 'active',
+          entry_time: '2026-08-31T10:00:00',
+          exit_time: null,
+          truck: { plate_number: 'TRK-001', truck_type: 'Flatbed' },
+          driver: { name: 'John Doe', phone_number: '555-1234' },
+        },
+      })
+      .mockResolvedValueOnce({ data: { calculated_fee: 10.0 } })
+
+    axios.post
+      .mockResolvedValueOnce({
+        data: {
+          parking_code: '123456',
+          fee_amount: 10.0,
+          payment_method: 'cash',
+          payment_confirmed_at: '2026-08-31T12:00:00',
+        },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          parking_code: '123456',
+          status: 'completed',
+          entry_time: '2026-08-31T10:00:00',
+          exit_time: '2026-08-31T13:00:00',
+          fee_amount: 10.0,
+          payment_method: 'cash',
+        },
+      })
+
+    render(<SessionLookup />)
+
+    await userEvent.type(screen.getByLabelText(/parking code/i), '123456')
+    await userEvent.click(screen.getByRole('button', { name: /look up/i }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /confirm payment/i })).toBeInTheDocument()
+    })
+    await userEvent.click(screen.getByRole('button', { name: /confirm payment/i }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /confirm exit/i })).toBeInTheDocument()
+    })
+    await userEvent.click(screen.getByRole('button', { name: /confirm exit/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/exit confirmed/i)).toBeInTheDocument()
+    })
+    expect(screen.queryByRole('button', { name: /confirm exit/i })).not.toBeInTheDocument()
+  })
+
+  it('Given an unpaid session, When the employee views it, Then no exit button is shown', async () => {
+    axios.get
+      .mockResolvedValueOnce({
+        data: {
+          parking_code: '999999',
+          status: 'active',
+          entry_time: '2026-08-31T10:00:00',
+          exit_time: null,
+          truck: { plate_number: 'TRK-009', truck_type: 'Flatbed' },
+          driver: { name: 'Unpaid Driver', phone_number: '555-0009' },
+        },
+      })
+      .mockResolvedValueOnce({ data: { calculated_fee: 10.0 } })
+
+    render(<SessionLookup />)
+
+    await userEvent.type(screen.getByLabelText(/parking code/i), '999999')
+    await userEvent.click(screen.getByRole('button', { name: /look up/i }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /confirm payment/i })).toBeInTheDocument()
+    })
+    expect(screen.queryByRole('button', { name: /confirm exit/i })).not.toBeInTheDocument()
+  })
+
+  it('Given a completed session code, When the employee looks it up, Then a Completed badge is shown', async () => {
     axios.get
       .mockResolvedValueOnce({
         data: {
@@ -146,11 +228,11 @@ describe('SessionLookup', () => {
     await userEvent.click(screen.getByRole('button', { name: /look up/i }))
 
     await waitFor(() => {
-            expect(screen.getByText('No session found with that code')).toBeInTheDocument()
+      expect(screen.getByText('No session found with that code')).toBeInTheDocument()
     })
   })
 
-    it('Given completed results, When the employee clicks New Lookup, Then the form resets', async () => {
+  it('Given completed results, When the employee clicks New Lookup, Then the form resets', async () => {
     axios.get
       .mockResolvedValueOnce({
         data: {

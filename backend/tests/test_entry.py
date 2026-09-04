@@ -395,3 +395,88 @@ def test_confirm_payment_rejects_non_employee(client, seed_users):
     )
 
     assert response.status_code == 403
+    
+def test_exit_blocked_without_payment(client, seed_users):
+    token = get_employee_token(client, seed_users)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    entry_response = client.post(
+        "/sessions/entry",
+        json={"driver_name": "Exit Driver", "phone_number": "555-8100", "plate_number": "TRK-E1", "truck_type": "Flatbed"},
+        headers=headers
+    )
+    code = entry_response.get_json()["parking_code"]
+
+    response = client.post(f"/sessions/lookup/{code}/exit", headers=headers)
+
+    assert response.status_code == 400
+    assert response.get_json()["error"] == "Payment must be confirmed before exit"
+
+
+def test_exit_success_after_payment(client, seed_users):
+    token = get_employee_token(client, seed_users)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    entry_response = client.post(
+        "/sessions/entry",
+        json={"driver_name": "Exit Driver 2", "phone_number": "555-8101", "plate_number": "TRK-E2", "truck_type": "Flatbed"},
+        headers=headers
+    )
+    code = entry_response.get_json()["parking_code"]
+
+    client.post(f"/sessions/lookup/{code}/pay", json={"payment_method": "cash"}, headers=headers)
+
+    response = client.post(f"/sessions/lookup/{code}/exit", headers=headers)
+
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["status"] == "completed"
+    assert data["exit_time"] is not None
+    assert data["fee_amount"] == 5.0
+    assert data["payment_method"] == "cash"
+
+
+def test_exit_blocked_when_already_exited(client, seed_users):
+    token = get_employee_token(client, seed_users)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    entry_response = client.post(
+        "/sessions/entry",
+        json={"driver_name": "Exit Driver 3", "phone_number": "555-8102", "plate_number": "TRK-E3", "truck_type": "Flatbed"},
+        headers=headers
+    )
+    code = entry_response.get_json()["parking_code"]
+
+    client.post(f"/sessions/lookup/{code}/pay", json={"payment_method": "cash"}, headers=headers)
+    client.post(f"/sessions/lookup/{code}/exit", headers=headers)
+
+    second_exit = client.post(f"/sessions/lookup/{code}/exit", headers=headers)
+
+    assert second_exit.status_code == 400
+    assert second_exit.get_json()["error"] == "This session has already been exited"
+
+
+def test_exit_nonexistent_code(client, seed_users):
+    token = get_employee_token(client, seed_users)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    response = client.post("/sessions/lookup/000000/exit", headers=headers)
+
+    assert response.status_code == 404
+
+
+def test_exit_requires_token(client, seed_users):
+    response = client.post("/sessions/lookup/123456/exit")
+    assert response.status_code == 401
+
+
+def test_exit_rejects_non_employee(client, seed_users):
+    login_response = client.post("/auth/login", json={"email": "admin@test.com", "password": "AdminPass123!"})
+    token = login_response.get_json()["access_token"]
+
+    response = client.post(
+        "/sessions/lookup/123456/exit",
+        headers={"Authorization": f"Bearer {token}"}
+    )
+
+    assert response.status_code == 403
