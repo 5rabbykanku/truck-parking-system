@@ -119,10 +119,89 @@ def test_dashboard_requires_token(client, seed_users):
     assert response.status_code == 401
 
 
-def test_dashboard_rejects_non_manager(client, seed_users):
+def test_dashboard_current_allows_employee(client, seed_users):
     employee_token = get_employee_token(client, seed_users)
     headers = {"Authorization": f"Bearer {employee_token}"}
 
     response = client.get("/dashboard/current", headers=headers)
 
+    assert response.status_code == 200
+
+
+def test_dashboard_manager_only_endpoints_reject_employee(client, seed_users):
+    employee_token = get_employee_token(client, seed_users)
+    headers = {"Authorization": f"Bearer {employee_token}"}
+
+    response = client.get("/dashboard/spaces", headers=headers)
+
     assert response.status_code == 403
+    
+def get_admin_token(client, seed_users):
+    response = client.post("/auth/login", json={"email": "admin@test.com", "password": "AdminPass123!"})
+    return response.get_json()["access_token"]
+
+
+def test_admin_sites_summary(client, seed_users):
+    employee_token = get_employee_token(client, seed_users)
+    employee_headers = {"Authorization": f"Bearer {employee_token}"}
+    create_entry(client, employee_headers, plate="TRK-A1", phone="555-2000")
+
+    admin_token = get_admin_token(client, seed_users)
+    admin_headers = {"Authorization": f"Bearer {admin_token}"}
+
+    response = client.get("/admin/sites", headers=admin_headers)
+
+    assert response.status_code == 200
+    data = response.get_json()
+    assert len(data) >= 1
+    site = data[0]
+    assert "name" in site
+    assert "occupied" in site
+    assert "available" in site
+    assert "today_revenue" in site
+
+
+def test_admin_site_current_drill_down(client, seed_users):
+    employee_token = get_employee_token(client, seed_users)
+    employee_headers = {"Authorization": f"Bearer {employee_token}"}
+    create_entry(client, employee_headers, plate="TRK-A2", phone="555-2001")
+
+    admin_token = get_admin_token(client, seed_users)
+    admin_headers = {"Authorization": f"Bearer {admin_token}"}
+
+    site_id = seed_users["site_id"]
+    response = client.get(f"/admin/sites/{site_id}/current", headers=admin_headers)
+
+    assert response.status_code == 200
+    plates = [s["truck"]["plate_number"] for s in response.get_json()]
+    assert "TRK-A2" in plates
+
+
+def test_admin_site_history_drill_down(client, seed_users):
+    employee_token = get_employee_token(client, seed_users)
+    employee_headers = {"Authorization": f"Bearer {employee_token}"}
+    create_entry(client, employee_headers, plate="TRK-A3", phone="555-2002")
+
+    admin_token = get_admin_token(client, seed_users)
+    admin_headers = {"Authorization": f"Bearer {admin_token}"}
+
+    site_id = seed_users["site_id"]
+    response = client.get(f"/admin/sites/{site_id}/history", headers=admin_headers)
+
+    assert response.status_code == 200
+    codes = [s["parking_code"] for s in response.get_json()]
+    assert len(codes) >= 1
+
+
+def test_admin_endpoints_reject_manager(client, seed_users):
+    manager_token = get_manager_token(client, seed_users)
+    headers = {"Authorization": f"Bearer {manager_token}"}
+
+    response = client.get("/admin/sites", headers=headers)
+
+    assert response.status_code == 403
+
+
+def test_admin_endpoints_require_token(client, seed_users):
+    response = client.get("/admin/sites")
+    assert response.status_code == 401
