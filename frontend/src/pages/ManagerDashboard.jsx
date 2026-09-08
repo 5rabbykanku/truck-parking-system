@@ -1,7 +1,42 @@
+import { useState, useEffect } from 'react'
+import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
 
 function ManagerDashboard() {
-  const { user, logout } = useAuth()
+  const { user, token, logout } = useAuth()
+  const [spaces, setSpaces] = useState(null)
+  const [today, setToday] = useState(null)
+  const [revenue, setRevenue] = useState(null)
+  const [history, setHistory] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      const headers = { Authorization: `Bearer ${token}` }
+      try {
+        const [spacesRes, todayRes, revenueRes, historyRes] = await Promise.all([
+          axios.get('http://127.0.0.1:5000/dashboard/spaces', { headers }),
+          axios.get('http://127.0.0.1:5000/dashboard/today', { headers }),
+          axios.get('http://127.0.0.1:5000/dashboard/revenue', { headers }),
+          axios.get('http://127.0.0.1:5000/dashboard/history', { headers }),
+        ])
+        setSpaces(spacesRes.data)
+        setToday(todayRes.data)
+        setRevenue(revenueRes.data)
+        setHistory(historyRes.data)
+      } catch (err) {
+        console.error('Failed to load dashboard', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDashboard()
+  }, [token])
+
+  if (loading) {
+    return <div className="container py-4">Loading dashboard...</div>
+  }
 
   return (
     <div className="container py-4">
@@ -10,7 +45,68 @@ function ManagerDashboard() {
         <button className="btn btn-outline-secondary" onClick={logout}>Log Out</button>
       </div>
       <p>Welcome, {user?.name} (Manager)</p>
-      <p className="text-muted">This is a placeholder - full Manager tools (site overview, manage Employees) come later in the build.</p>
+
+      <div className="row g-3 mb-4">
+        <div className="col-6 col-md-3">
+          <div className="card p-3 text-center h-100">
+            <div className="text-muted small">Occupied</div>
+            <div className="fs-3">{spaces.occupied} / {spaces.total_spaces}</div>
+          </div>
+        </div>
+        <div className="col-6 col-md-3">
+          <div className="card p-3 text-center h-100">
+            <div className="text-muted small">Available</div>
+            <div className="fs-3">{spaces.available}</div>
+          </div>
+        </div>
+        <div className="col-6 col-md-3">
+          <div className="card p-3 text-center h-100">
+            <div className="text-muted small">Today's Entries / Exits</div>
+            <div className="fs-3">{today.entries} / {today.exits}</div>
+          </div>
+        </div>
+        <div className="col-6 col-md-3">
+          <div className="card p-3 text-center h-100">
+            <div className="text-muted small">Today's Revenue</div>
+            <div className="fs-3">${revenue.total_revenue.toFixed(2)}</div>
+          </div>
+        </div>
+      </div>
+
+      <h5>History</h5>
+      <div className="table-responsive">
+        <table className="table table-sm table-striped">
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Status</th>
+              <th>Plate</th>
+              <th>Driver</th>
+              <th>Entry</th>
+              <th>Exit</th>
+              <th>Fee</th>
+            </tr>
+          </thead>
+          <tbody>
+            {history.map((s) => (
+              <tr key={s.session_id}>
+                <td>{s.parking_code}</td>
+                <td>
+                  <span className={`badge ${s.status === 'active' ? 'bg-success' : 'bg-secondary'}`}>
+                    {s.status}
+                  </span>
+                </td>
+                <td>{s.truck.plate_number}</td>
+                <td>{s.driver.name}</td>
+                <td>{new Date(s.entry_time).toLocaleTimeString()}</td>
+                <td>{s.exit_time ? new Date(s.exit_time).toLocaleTimeString() : '-'}</td>
+                <td>{s.fee_amount ? `$${s.fee_amount.toFixed(2)}` : '-'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {history.length === 0 && <p className="text-muted">No activity yet today.</p>}
+      </div>
     </div>
   )
 }
