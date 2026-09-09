@@ -1,4 +1,4 @@
-from datetime import datetime, date, time
+from datetime import datetime, date, time, timedelta
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import get_jwt
 from app.decorators import requires_role
@@ -201,3 +201,32 @@ def admin_site_history(site_id):
         "truck": {"plate_number": s.truck.plate_number, "truck_type": s.truck.truck_type},
         "driver": {"name": s.driver.name, "phone_number": s.driver.phone_number}
     } for s in sessions]), 200
+    
+@dashboard_bp.route("/dashboard/revenue/daily", methods=["GET"])
+@requires_role("manager")
+def daily_revenue():
+    site_id = get_manager_site_id()
+    days = int(request.args.get("days", 7))
+
+    result = []
+    for i in range(days - 1, -1, -1):
+        day = date.today() - timedelta(days=i)
+        start = datetime.combine(day, time.min)
+        end = datetime.combine(day, time.max)
+
+        sessions = ParkingSession.query.filter(
+            ParkingSession.site_id == site_id,
+            ParkingSession.payment_confirmed_at.isnot(None),
+            ParkingSession.payment_confirmed_at >= start,
+            ParkingSession.payment_confirmed_at <= end
+        ).all()
+
+        total = sum(float(s.fee_amount) for s in sessions if s.fee_amount)
+
+        result.append({
+            "date": day.isoformat(),
+            "revenue": round(total, 2)
+        })
+
+    return jsonify(result), 200
+

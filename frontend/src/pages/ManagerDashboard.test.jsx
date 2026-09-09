@@ -18,6 +18,19 @@ describe('ManagerDashboard', () => {
       if (url.includes('/today')) {
         return Promise.resolve({ data: { date: '2026-09-08', entries: 5, exits: 2 } })
       }
+      if (url.includes('/revenue/daily')) {
+        return Promise.resolve({
+          data: [
+            { date: '2026-09-03', revenue: 0 },
+            { date: '2026-09-04', revenue: 50.0 },
+            { date: '2026-09-05', revenue: 0 },
+            { date: '2026-09-06', revenue: 0 },
+            { date: '2026-09-07', revenue: 0 },
+            { date: '2026-09-08', revenue: 10.0 },
+            { date: '2026-09-09', revenue: 0 },
+          ],
+        })
+      }
       if (url.includes('/revenue')) {
         return Promise.resolve({ data: { start: '2026-09-08', end: '2026-09-08', payment_count: 3, total_revenue: 45.0 } })
       }

@@ -205,3 +205,20 @@ def test_admin_endpoints_reject_manager(client, seed_users):
 def test_admin_endpoints_require_token(client, seed_users):
     response = client.get("/admin/sites")
     assert response.status_code == 401
+
+def test_daily_revenue_returns_correct_number_of_days(client, seed_users):
+    employee_token = get_employee_token(client, seed_users)
+    employee_headers = {"Authorization": f"Bearer {employee_token}"}
+    code = create_entry(client, employee_headers, plate="TRK-CHART", phone="555-3000")
+    client.post(f"/sessions/lookup/{code}/pay", json={"payment_method": "cash"}, headers=employee_headers)
+
+    manager_token = get_manager_token(client, seed_users)
+    manager_headers = {"Authorization": f"Bearer {manager_token}"}
+
+    response = client.get("/dashboard/revenue/daily?days=7", headers=manager_headers)
+
+    assert response.status_code == 200
+    data = response.get_json()
+    assert len(data) == 7
+    today_entry = data[-1]
+    assert today_entry["revenue"] >= 5.0

@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
+import Chart from 'chart.js/auto'
 
 function ManagerDashboard() {
   const { user, token, logout } = useAuth()
@@ -8,22 +9,27 @@ function ManagerDashboard() {
   const [today, setToday] = useState(null)
   const [revenue, setRevenue] = useState(null)
   const [history, setHistory] = useState([])
+  const [dailyRevenue, setDailyRevenue] = useState([])
   const [loading, setLoading] = useState(true)
+  const chartRef = useRef(null)
+  const chartInstanceRef = useRef(null)
 
   useEffect(() => {
     const fetchDashboard = async () => {
       const headers = { Authorization: `Bearer ${token}` }
       try {
-        const [spacesRes, todayRes, revenueRes, historyRes] = await Promise.all([
+        const [spacesRes, todayRes, revenueRes, historyRes, dailyRes] = await Promise.all([
           axios.get('http://127.0.0.1:5000/dashboard/spaces', { headers }),
           axios.get('http://127.0.0.1:5000/dashboard/today', { headers }),
           axios.get('http://127.0.0.1:5000/dashboard/revenue', { headers }),
           axios.get('http://127.0.0.1:5000/dashboard/history', { headers }),
+          axios.get('http://127.0.0.1:5000/dashboard/revenue/daily', { headers }),
         ])
         setSpaces(spacesRes.data)
         setToday(todayRes.data)
         setRevenue(revenueRes.data)
         setHistory(historyRes.data)
+        setDailyRevenue(dailyRes.data)
       } catch (err) {
         console.error('Failed to load dashboard', err)
       } finally {
@@ -33,6 +39,37 @@ function ManagerDashboard() {
 
     fetchDashboard()
   }, [token])
+
+  useEffect(() => {
+    if (dailyRevenue.length === 0 || !chartRef.current) return
+
+    if (chartInstanceRef.current) {
+      chartInstanceRef.current.destroy()
+    }
+
+    chartInstanceRef.current = new Chart(chartRef.current, {
+      type: 'bar',
+      data: {
+        labels: dailyRevenue.map((d) => d.date.slice(5)),
+        datasets: [{
+          label: 'Revenue ($)',
+          data: dailyRevenue.map((d) => d.revenue),
+          backgroundColor: '#0d6efd',
+        }],
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true } },
+      },
+    })
+
+    return () => {
+      if (chartInstanceRef.current) {
+        chartInstanceRef.current.destroy()
+      }
+    }
+  }, [dailyRevenue])
 
   if (loading) {
     return <div className="container py-4">Loading dashboard...</div>
@@ -72,7 +109,12 @@ function ManagerDashboard() {
           </div>
         </div>
       </div>
+      <div className="card p-3 mb-4">
+        <h6>Revenue - Last 7 Days</h6>
+        <canvas ref={chartRef}></canvas>
+      </div>
 
+      
       <h5>History</h5>
       <div className="table-responsive">
         <table className="table table-sm table-striped">

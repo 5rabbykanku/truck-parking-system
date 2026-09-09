@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-    "scripts": {
+  "scripts": {
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
@@ -13,6 +13,7 @@
   "dependencies": {
     "axios": "^1.20.0",
     "bootstrap": "^5.3.8",
+    "chart.js": "^4.5.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.2"
