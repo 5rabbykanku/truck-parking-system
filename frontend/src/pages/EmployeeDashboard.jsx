@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
+import ActiveSessionsTable from '../components/dashboard/ActiveSessionsTable'
 
 function EmployeeDashboard() {
   const { user, token, logout } = useAuth()
@@ -44,31 +45,8 @@ function EmployeeDashboard() {
       <h5>Currently Parked ({activeSessions.length})</h5>
       {loading ? (
         <p className="text-muted">Loading...</p>
-      ) : activeSessions.length === 0 ? (
-        <p className="text-muted">No trucks currently parked.</p>
       ) : (
-        <div className="table-responsive">
-          <table className="table table-sm table-striped">
-            <thead>
-              <tr>
-                <th>Code</th>
-                <th>Plate</th>
-                <th>Driver</th>
-                <th>Entry Time</th>
-              </tr>
-            </thead>
-            <tbody>
-              {activeSessions.map((s) => (
-                <tr key={s.session_id}>
-                  <td>{s.parking_code}</td>
-                  <td>{s.truck.plate_number}</td>
-                  <td>{s.driver.name}</td>
-                  <td>{new Date(s.entry_time).toLocaleTimeString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ActiveSessionsTable sessions={activeSessions} />
       )}
     </div>
   )

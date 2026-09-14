@@ -2,9 +2,12 @@ import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
 import Chart from 'chart.js/auto'
+import ActiveSessionsTable from '../components/dashboard/ActiveSessionsTable'
+import HistoryTable from '../components/dashboard/HistoryTable'
 
 function ManagerDashboard() {
   const { user, token, logout } = useAuth()
+  const [current, setCurrent] = useState([])
   const [spaces, setSpaces] = useState(null)
   const [today, setToday] = useState(null)
   const [revenue, setRevenue] = useState(null)
@@ -18,13 +21,15 @@ function ManagerDashboard() {
     const fetchDashboard = async () => {
       const headers = { Authorization: `Bearer ${token}` }
       try {
-        const [spacesRes, todayRes, revenueRes, historyRes, dailyRes] = await Promise.all([
+        const [currentRes, spacesRes, todayRes, revenueRes, historyRes, dailyRes] = await Promise.all([
+          axios.get('http://127.0.0.1:5000/dashboard/current', { headers }),
           axios.get('http://127.0.0.1:5000/dashboard/spaces', { headers }),
           axios.get('http://127.0.0.1:5000/dashboard/today', { headers }),
           axios.get('http://127.0.0.1:5000/dashboard/revenue', { headers }),
           axios.get('http://127.0.0.1:5000/dashboard/history', { headers }),
           axios.get('http://127.0.0.1:5000/dashboard/revenue/daily', { headers }),
         ])
+        setCurrent(currentRes.data)
         setSpaces(spacesRes.data)
         setToday(todayRes.data)
         setRevenue(revenueRes.data)
@@ -109,46 +114,19 @@ function ManagerDashboard() {
           </div>
         </div>
       </div>
+
+      <h5>Currently Parked ({current.length})</h5>
+      <div className="mb-4">
+        <ActiveSessionsTable sessions={current} />
+      </div>
+
       <div className="card p-3 mb-4">
         <h6>Revenue - Last 7 Days</h6>
         <canvas ref={chartRef}></canvas>
       </div>
 
-      
       <h5>History</h5>
-      <div className="table-responsive">
-        <table className="table table-sm table-striped">
-          <thead>
-            <tr>
-              <th>Code</th>
-              <th>Status</th>
-              <th>Plate</th>
-              <th>Driver</th>
-              <th>Entry</th>
-              <th>Exit</th>
-              <th>Fee</th>
-            </tr>
-          </thead>
-          <tbody>
-            {history.map((s) => (
-              <tr key={s.session_id}>
-                <td>{s.parking_code}</td>
-                <td>
-                  <span className={`badge ${s.status === 'active' ? 'bg-success' : 'bg-secondary'}`}>
-                    {s.status}
-                  </span>
-                </td>
-                <td>{s.truck.plate_number}</td>
-                <td>{s.driver.name}</td>
-                <td>{new Date(s.entry_time).toLocaleTimeString()}</td>
-                <td>{s.exit_time ? new Date(s.exit_time).toLocaleTimeString() : '-'}</td>
-                <td>{s.fee_amount ? `$${s.fee_amount.toFixed(2)}` : '-'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {history.length === 0 && <p className="text-muted">No activity yet today.</p>}
-      </div>
+      <HistoryTable sessions={history} />
     </div>
   )
 }

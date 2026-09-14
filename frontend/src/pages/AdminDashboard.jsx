@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
+import ActiveSessionsTable from '../components/dashboard/ActiveSessionsTable'
+import HistoryTable from '../components/dashboard/HistoryTable'
 
 function AdminDashboard() {
   const { user, token, logout } = useAuth()
@@ -99,7 +101,7 @@ function AdminDashboard() {
         </>
       ) : (
         <>
-                    <button className="btn btn-outline-secondary btn-sm mb-3" onClick={handleBackToSites}>
+          <button className="btn btn-outline-secondary btn-sm mb-3" onClick={handleBackToSites}>
             &larr; Back to All Sites
           </button>
           <h5>{selectedSite.name}</h5>
@@ -109,58 +111,12 @@ function AdminDashboard() {
           ) : (
             <>
               <h6 className="mt-4">Currently Parked ({siteCurrent.length})</h6>
-              <div className="table-responsive mb-4">
-                <table className="table table-sm table-striped">
-                  <thead>
-                    <tr>
-                      <th>Code</th>
-                      <th>Plate</th>
-                      <th>Driver</th>
-                      <th>Entry Time</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {siteCurrent.map((s) => (
-                      <tr key={s.session_id}>
-                        <td>{s.parking_code}</td>
-                        <td>{s.truck.plate_number}</td>
-                        <td>{s.driver.name}</td>
-                        <td>{new Date(s.entry_time).toLocaleTimeString()}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {siteCurrent.length === 0 && <p className="text-muted">No trucks currently parked.</p>}
+              <div className="mb-4">
+                <ActiveSessionsTable sessions={siteCurrent} />
               </div>
 
               <h6>History</h6>
-              <div className="table-responsive">
-                <table className="table table-sm table-striped">
-                  <thead>
-                    <tr>
-                      <th>Code</th>
-                      <th>Status</th>
-                      <th>Plate</th>
-                      <th>Fee</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {siteHistory.map((s) => (
-                      <tr key={s.session_id}>
-                        <td>{s.parking_code}</td>
-                        <td>
-                          <span className={`badge ${s.status === 'active' ? 'bg-success' : 'bg-secondary'}`}>
-                            {s.status}
-                          </span>
-                        </td>
-                        <td>{s.truck.plate_number}</td>
-                        <td>{s.fee_amount ? `$${s.fee_amount.toFixed(2)}` : '-'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {siteHistory.length === 0 && <p className="text-muted">No activity yet today.</p>}
-              </div>
+              <HistoryTable sessions={siteHistory} showDriver={false} />
             </>
           )}
         </>

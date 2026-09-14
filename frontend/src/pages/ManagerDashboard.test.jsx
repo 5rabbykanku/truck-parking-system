@@ -12,6 +12,19 @@ describe('ManagerDashboard', () => {
     useAuth.mockReturnValue({ user: { name: 'Mary Manager' }, token: 'fake-token', logout: vi.fn() })
 
     axios.get.mockImplementation((url) => {
+      if (url.includes('/current')) {
+        return Promise.resolve({
+          data: [
+            {
+              session_id: 2,
+              parking_code: '999999',
+              entry_time: '2026-09-08T09:00:00',
+              truck: { plate_number: 'TRK-CURR', truck_type: 'Flatbed' },
+              driver: { name: 'Current Driver', phone_number: '555-8888' },
+            },
+          ],
+        })
+      }
       if (url.includes('/spaces')) {
         return Promise.resolve({ data: { total_spaces: 50, occupied: 10, available: 40 } })
       }
@@ -63,5 +76,6 @@ describe('ManagerDashboard', () => {
     expect(screen.getByText('5 / 2')).toBeInTheDocument()
     expect(screen.getByText('$45.00')).toBeInTheDocument()
     expect(screen.getByText('TRK-001')).toBeInTheDocument()
+    expect(screen.getByText('TRK-CURR')).toBeInTheDocument()
   })
 })
