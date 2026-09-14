@@ -70,6 +70,9 @@ def update_manager(manager_id):
     if not manager:
         return jsonify({"error": "Manager not found"}), 404
 
+    if not manager.is_active:
+        return jsonify({"error": "Cannot edit a deactivated manager"}), 400
+
     data = request.get_json()
     if not data:
         return jsonify({"error": "No update data provided"}), 400
@@ -156,6 +159,9 @@ def update_site(site_id):
     site = Site.query.get(site_id)
     if not site:
         return jsonify({"error": "Site not found"}), 404
+
+    if not site.is_active:
+        return jsonify({"error": "Cannot edit a deactivated site"}), 400
 
     data = request.get_json()
     if not data:

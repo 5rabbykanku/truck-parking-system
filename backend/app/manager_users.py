@@ -67,6 +67,9 @@ def update_employee(employee_id):
     if not employee:
         return jsonify({"error": "Employee not found"}), 404
 
+    if not employee.is_active:
+        return jsonify({"error": "Cannot edit a deactivated employee"}), 400
+
     data = request.get_json()
     if not data:
         return jsonify({"error": "No update data provided"}), 400

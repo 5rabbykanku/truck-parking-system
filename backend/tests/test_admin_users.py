@@ -160,3 +160,96 @@ def test_admin_endpoints_reject_manager(client, seed_users):
 def test_admin_endpoints_require_token(client, seed_users):
     response = client.get("/admin/managers")
     assert response.status_code == 401
+
+def test_update_site_not_found(client, seed_users):
+    token = get_admin_token(client, seed_users)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    response = client.put("/admin/sites/99999", json={"name": "Ghost"}, headers=headers)
+
+    assert response.status_code == 404
+
+
+def test_deactivate_site_not_found(client, seed_users):
+    token = get_admin_token(client, seed_users)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    response = client.delete("/admin/sites/99999", headers=headers)
+
+    assert response.status_code == 404
+
+
+def test_update_manager_not_found(client, seed_users):
+    token = get_admin_token(client, seed_users)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    response = client.put("/admin/managers/99999", json={"name": "Ghost"}, headers=headers)
+
+    assert response.status_code == 404
+
+
+def test_deactivate_manager_not_found(client, seed_users):
+    token = get_admin_token(client, seed_users)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    response = client.delete("/admin/managers/99999", headers=headers)
+
+    assert response.status_code == 404
+
+
+def test_create_manager_nonexistent_site(client, seed_users):
+    token = get_admin_token(client, seed_users)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    response = client.post(
+        "/admin/managers",
+        json={"name": "Orphan Manager", "email": "orphan@test.com", "password": "OrphanPass123!", "site_id": 99999},
+        headers=headers
+    )
+
+    assert response.status_code == 404
+
+
+def test_update_manager_reassign_to_nonexistent_site(client, seed_users):
+    token = get_admin_token(client, seed_users)
+    headers = {"Authorization": f"Bearer {token}"}
+    site = create_site(client, headers)
+
+    create_response = client.post(
+        "/admin/managers",
+        json={"name": "Reassign Test", "email": "reassigntest@test.com", "password": "ReassignPass123!", "site_id": site["id"]},
+        headers=headers
+    )
+    manager_id = create_response.get_json()["id"]
+
+    response = client.put(f"/admin/managers/{manager_id}", json={"site_id": 99999}, headers=headers)
+
+    assert response.status_code == 404
+
+def test_cannot_edit_deactivated_manager(client, seed_users):
+    token = get_admin_token(client, seed_users)
+    headers = {"Authorization": f"Bearer {token}"}
+    site = create_site(client, headers)
+
+    create_response = client.post(
+        "/admin/managers",
+        json={"name": "ToDeactivate2", "email": "deactivate2@test.com", "password": "DeactivatePass123!", "site_id": site["id"]},
+        headers=headers
+    )
+    manager_id = create_response.get_json()["id"]
+    client.delete(f"/admin/managers/{manager_id}", headers=headers)
+
+    response = client.put(f"/admin/managers/{manager_id}", json={"name": "Trying"}, headers=headers)
+
+    assert response.status_code == 400
+
+
+def test_cannot_edit_deactivated_site(client, seed_users):
+    token = get_admin_token(client, seed_users)
+    headers = {"Authorization": f"Bearer {token}"}
+    site = create_site(client, headers)
+    client.delete(f"/admin/sites/{site['id']}", headers=headers)
+
+    response = client.put(f"/admin/sites/{site['id']}", json={"name": "Trying"}, headers=headers)
+
+    assert response.status_code == 400

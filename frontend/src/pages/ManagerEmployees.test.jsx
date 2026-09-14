@@ -58,3 +58,62 @@ describe('ManagerEmployees', () => {
     })
   })
 })
+
+it('Given an existing employee, When the Manager clicks Edit and saves, Then the employee is updated', async () => {
+  useAuth.mockReturnValue({ token: 'fake-token' })
+  axios.get.mockResolvedValue({
+    data: [{ id: 1, name: 'Ellis Employee', email: 'employee@test.com', is_active: true, last_active_at: null }],
+  })
+  axios.put.mockResolvedValue({ data: { id: 1, name: 'Ellis Updated' } })
+
+  render(
+    <MemoryRouter>
+      <ManagerEmployees />
+    </MemoryRouter>
+  )
+
+  await waitFor(() => {
+    expect(screen.getByText('Ellis Employee')).toBeInTheDocument()
+  })
+
+  await userEvent.click(screen.getByRole('button', { name: /edit/i }))
+  const nameInput = screen.getByLabelText(/^name$/i)
+  await userEvent.clear(nameInput)
+  await userEvent.type(nameInput, 'Ellis Updated')
+  await userEvent.click(screen.getByRole('button', { name: /save/i }))
+
+  await waitFor(() => {
+    expect(axios.put).toHaveBeenCalledWith(
+      'http://127.0.0.1:5000/manager/employees/1',
+      expect.objectContaining({ name: 'Ellis Updated' }),
+      expect.anything()
+    )
+  })
+})
+
+it('Given an existing employee, When the Manager clicks Deactivate, Then the employee is deactivated', async () => {
+  useAuth.mockReturnValue({ token: 'fake-token' })
+  axios.get.mockResolvedValue({
+    data: [{ id: 1, name: 'Ellis Employee', email: 'employee@test.com', is_active: true, last_active_at: null }],
+  })
+  axios.delete.mockResolvedValue({ data: { id: 1, is_active: false } })
+
+  render(
+    <MemoryRouter>
+      <ManagerEmployees />
+    </MemoryRouter>
+  )
+
+  await waitFor(() => {
+    expect(screen.getByText('Ellis Employee')).toBeInTheDocument()
+  })
+
+  await userEvent.click(screen.getByRole('button', { name: /deactivate/i }))
+
+  await waitFor(() => {
+    expect(axios.delete).toHaveBeenCalledWith(
+      'http://127.0.0.1:5000/manager/employees/1',
+      expect.anything()
+    )
+  })
+})

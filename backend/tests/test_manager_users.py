@@ -117,3 +117,45 @@ def test_manager_employee_endpoints_reject_employee_role(client, seed_users):
 def test_manager_employee_endpoints_require_token(client, seed_users):
     response = client.get("/manager/employees")
     assert response.status_code == 401
+
+def test_update_employee_not_found(client, seed_users):
+    token = get_manager_token(client, seed_users)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    response = client.put("/manager/employees/99999", json={"name": "Ghost"}, headers=headers)
+
+    assert response.status_code == 404
+
+
+def test_deactivate_employee_not_found(client, seed_users):
+    token = get_manager_token(client, seed_users)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    response = client.delete("/manager/employees/99999", headers=headers)
+
+    assert response.status_code == 404
+
+
+def test_create_employee_missing_fields(client, seed_users):
+    token = get_manager_token(client, seed_users)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    response = client.post("/manager/employees", json={"name": "Incomplete"}, headers=headers)
+
+    assert response.status_code == 400
+    
+def test_cannot_edit_deactivated_employee(client, seed_users):
+    token = get_manager_token(client, seed_users)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    create_response = client.post(
+        "/manager/employees",
+        json={"name": "ToDeactivate3", "email": "deactivate3@test.com", "password": "DeactivatePass123!"},
+        headers=headers
+    )
+    employee_id = create_response.get_json()["id"]
+    client.delete(f"/manager/employees/{employee_id}", headers=headers)
+
+    response = client.put(f"/manager/employees/{employee_id}", json={"name": "Trying"}, headers=headers)
+
+    assert response.status_code == 400

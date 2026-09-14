@@ -480,3 +480,41 @@ def test_exit_rejects_non_employee(client, seed_users):
     )
 
     assert response.status_code == 403
+
+def test_expired_token_rejected(client, seed_users, app):
+    from flask_jwt_extended import create_access_token
+    from datetime import timedelta
+
+    with app.app_context():
+        expired_token = create_access_token(
+            identity="1",
+            additional_claims={"role": "employee", "site_id": 1},
+            expires_delta=timedelta(seconds=-1)
+        )
+
+    headers = {"Authorization": f"Bearer {expired_token}"}
+    response = client.get("/dashboard/current", headers=headers)
+
+    assert response.status_code == 401
+    assert "expired" in response.get_json()["msg"].lower()
+
+def test_entry_accepts_non_string_truck_type_without_crashing(client, seed_users):
+    token = get_employee_token(client, seed_users)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    response = client.post(
+        "/sessions/entry",
+        json={"driver_name": "Bad Input", "phone_number": "555-0000", "plate_number": "TRK-BAD", "truck_type": 12345},
+        headers=headers
+    )
+
+    assert response.status_code == 201
+
+
+def test_fee_endpoint_handles_malformed_code(client, seed_users):
+    token = get_employee_token(client, seed_users)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    response = client.get("/sessions/lookup/not-a-real-code/fee", headers=headers)
+
+    assert response.status_code == 404
