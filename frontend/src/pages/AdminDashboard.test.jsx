@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
 import axios from 'axios'
 import AdminDashboard from './AdminDashboard'
 import { useAuth } from '../context/AuthContext'
@@ -17,7 +18,11 @@ describe('AdminDashboard', () => {
       ],
     })
 
-    render(<AdminDashboard />)
+        render(
+      <MemoryRouter>
+        <AdminDashboard />
+      </MemoryRouter>
+    )
 
     await waitFor(() => {
       expect(screen.getByText('Main Depot')).toBeInTheDocument()
@@ -47,7 +52,11 @@ describe('AdminDashboard', () => {
       return Promise.resolve({ data: {} })
     })
 
-    render(<AdminDashboard />)
+        render(
+      <MemoryRouter>
+        <AdminDashboard />
+      </MemoryRouter>
+    )
 
     await waitFor(() => {
       expect(screen.getByText('Main Depot')).toBeInTheDocument()

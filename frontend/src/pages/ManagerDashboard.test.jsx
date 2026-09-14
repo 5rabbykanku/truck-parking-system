@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import axios from 'axios'
 import ManagerDashboard from './ManagerDashboard'
 import { useAuth } from '../context/AuthContext'
@@ -67,7 +68,11 @@ describe('ManagerDashboard', () => {
       return Promise.resolve({ data: {} })
     })
 
-    render(<ManagerDashboard />)
+        render(
+      <MemoryRouter>
+        <ManagerDashboard />
+      </MemoryRouter>
+    )
 
     await waitFor(() => {
       expect(screen.getByText('10 / 50')).toBeInTheDocument()

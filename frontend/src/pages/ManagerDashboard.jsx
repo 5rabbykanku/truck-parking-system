@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { Link } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
 import Chart from 'chart.js/auto'
@@ -86,7 +87,8 @@ function ManagerDashboard() {
         <h2>Manager Dashboard</h2>
         <button className="btn btn-outline-secondary" onClick={logout}>Log Out</button>
       </div>
-      <p>Welcome, {user?.name} (Manager)</p>
+            <p>Welcome, {user?.name} (Manager)</p>
+      <Link to="/manager/employees" className="btn btn-primary mb-4">Manage Employees</Link>
 
       <div className="row g-3 mb-4">
         <div className="col-6 col-md-3">

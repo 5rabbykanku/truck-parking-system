@@ -7,6 +7,9 @@ import ManagerDashboard from './pages/ManagerDashboard'
 import EmployeeDashboard from './pages/EmployeeDashboard'
 import EntryForm from './pages/EntryForm'
 import SessionLookup from './pages/SessionLookup'
+import AdminSites from './pages/AdminSites'
+import AdminManagers from './pages/AdminManagers'
+import ManagerEmployees from './pages/ManagerEmployees'
 
 function App() {
   return (
@@ -15,7 +18,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
 
-          <Route
+                    <Route
             path="/admin"
             element={
               <ProtectedRoute allowedRoles={['admin']}>
@@ -25,6 +28,24 @@ function App() {
           />
 
           <Route
+            path="/admin/sites"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminSites />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin/managers"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminManagers />
+              </ProtectedRoute>
+            }
+          />
+
+                    <Route
             path="/manager"
             element={
               <ProtectedRoute allowedRoles={['manager']}>
@@ -33,6 +54,14 @@ function App() {
             }
           />
 
+          <Route
+            path="/manager/employees"
+            element={
+              <ProtectedRoute allowedRoles={['manager']}>
+                <ManagerEmployees />
+              </ProtectedRoute>
+            }
+          />
            <Route
             path="/employee"
             element={

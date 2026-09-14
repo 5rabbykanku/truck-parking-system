@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
 import ActiveSessionsTable from '../components/dashboard/ActiveSessionsTable'
@@ -65,7 +66,11 @@ function AdminDashboard() {
         <h2>Admin Dashboard</h2>
         <button className="btn btn-outline-secondary" onClick={logout}>Log Out</button>
       </div>
-      <p>Welcome, {user?.name} (Admin)</p>
+            <p>Welcome, {user?.name} (Admin)</p>
+      <div className="d-flex gap-2 flex-wrap mb-4">
+        <Link to="/admin/sites" className="btn btn-primary">Manage Sites</Link>
+        <Link to="/admin/managers" className="btn btn-primary">Manage Managers</Link>
+      </div>
 
       {!selectedSite ? (
         <>
