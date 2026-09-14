@@ -18,11 +18,11 @@ class Site(db.Model):
     total_spaces = db.Column(db.Integer, nullable=False, default=0)
     hourly_rate = db.Column(db.Numeric(10, 2), nullable=False, default=0)
     daily_rate = db.Column(db.Numeric(10, 2), nullable=False, default=0)
-    manager_id = db.Column(db.Integer, db.ForeignKey("users.id", use_alter=True, name="fk_sites_manager_id"), nullable=True)
-    manager = db.relationship("User", foreign_keys=[manager_id], back_populates="managed_site")
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    manager_id = db.Column(db.Integer, db.ForeignKey("users.id", use_alter=True, name="fk_sites_manager_id"),nullable=True)
     employees = db.relationship("User", foreign_keys="User.site_id", back_populates="site")
     parking_sessions = db.relationship("ParkingSession", back_populates="site")
-
+    manager = db.relationship("User", foreign_keys=[manager_id], back_populates="managed_site")
 
 class User(db.Model):
     __tablename__ = "users"

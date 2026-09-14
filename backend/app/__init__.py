@@ -21,9 +21,13 @@ def create_app(config_class=Config):
     from app.auth import auth_bp
     from app.entry import entry_bp
     from app.dashboard import dashboard_bp
+    from app.admin_users import admin_users_bp
+    from app.manager_users import manager_users_bp
     app.register_blueprint(auth_bp)
     app.register_blueprint(entry_bp)
     app.register_blueprint(dashboard_bp)
+    app.register_blueprint(admin_users_bp)
+    app.register_blueprint(manager_users_bp)
     @app.route("/health")
     def health():
         return {"status": "ok"}
