@@ -1,11 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
 import Chart from 'chart.js/auto'
 import ActiveSessionsTable from '../components/dashboard/ActiveSessionsTable'
 import HistoryTable from '../components/dashboard/HistoryTable'
-
+import { api } from '../config'
 function ManagerDashboard() {
   const { user, token, logout } = useAuth()
   const [current, setCurrent] = useState([])
@@ -22,13 +21,13 @@ function ManagerDashboard() {
     const fetchDashboard = async () => {
       const headers = { Authorization: `Bearer ${token}` }
       try {
-        const [currentRes, spacesRes, todayRes, revenueRes, historyRes, dailyRes] = await Promise.all([
-          axios.get('http://127.0.0.1:5000/dashboard/current', { headers }),
-          axios.get('http://127.0.0.1:5000/dashboard/spaces', { headers }),
-          axios.get('http://127.0.0.1:5000/dashboard/today', { headers }),
-          axios.get('http://127.0.0.1:5000/dashboard/revenue', { headers }),
-          axios.get('http://127.0.0.1:5000/dashboard/history', { headers }),
-          axios.get('http://127.0.0.1:5000/dashboard/revenue/daily', { headers }),
+                        const [currentRes, spacesRes, todayRes, revenueRes, historyRes, dailyRes] = await Promise.all([
+          api.get('/dashboard/current', { headers }),
+          api.get('/dashboard/spaces', { headers }),
+          api.get('/dashboard/today', { headers }),
+          api.get('/dashboard/revenue', { headers }),
+          api.get('/dashboard/history', { headers }),
+          api.get('/dashboard/revenue/daily', { headers }),
         ])
         setCurrent(currentRes.data)
         setSpaces(spacesRes.data)

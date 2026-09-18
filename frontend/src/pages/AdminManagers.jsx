@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import axios from 'axios'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { api } from '../config'
 
 function AdminManagers() {
   const { token } = useAuth()
@@ -16,9 +16,9 @@ function AdminManagers() {
   const fetchData = async () => {
     const headers = { Authorization: `Bearer ${token}` }
     try {
-      const [managersRes, sitesRes] = await Promise.all([
-        axios.get('http://127.0.0.1:5000/admin/managers', { headers }),
-        axios.get('http://127.0.0.1:5000/admin/sites', { headers }),
+                  const [managersRes, sitesRes] = await Promise.all([
+        api.get('/admin/managers', { headers }),
+        api.get('/admin/sites', { headers }),
       ])
       setManagers(managersRes.data)
       setSites(sitesRes.data)
@@ -51,12 +51,12 @@ function AdminManagers() {
 
     try {
       const headers = { Authorization: `Bearer ${token}` }
-      if (editingManager) {
+                  if (editingManager) {
         const payload = { name: formData.name, email: formData.email, site_id: parseInt(formData.site_id, 10) }
-        await axios.put(`http://127.0.0.1:5000/admin/managers/${editingManager.id}`, payload, { headers })
+        await api.put(`/admin/managers/${editingManager.id}`, payload, { headers })
       } else {
         const payload = { ...formData, site_id: parseInt(formData.site_id, 10) }
-        await axios.post('http://127.0.0.1:5000/admin/managers', payload, { headers })
+        await api.post('/admin/managers', payload, { headers })
       }
       setShowForm(false)
       fetchData()
@@ -71,7 +71,7 @@ function AdminManagers() {
 
   const handleDeactivate = async (manager) => {
     try {
-      await axios.delete(`http://127.0.0.1:5000/admin/managers/${manager.id}`, {
+                  await api.delete(`/admin/managers/${manager.id}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       fetchData()

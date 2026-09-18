@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react'
-import axios from 'axios'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-
+import { api } from '../config'
 function AdminSites() {
   const { token } = useAuth()
   const [sites, setSites] = useState([])
@@ -14,7 +13,7 @@ function AdminSites() {
 
   const fetchSites = async () => {
     try {
-      const response = await axios.get('http://127.0.0.1:5000/admin/sites', {
+                  const response = await api.get('/admin/sites', {
         headers: { Authorization: `Bearer ${token}` },
       })
       setSites(response.data)
@@ -61,10 +60,10 @@ function AdminSites() {
 
     try {
       const headers = { Authorization: `Bearer ${token}` }
-      if (editingSite) {
-        await axios.put(`http://127.0.0.1:5000/admin/sites/${editingSite.site_id}`, payload, { headers })
+                if (editingSite) {
+        await api.put(`/admin/sites/${editingSite.site_id}`, payload, { headers })
       } else {
-        await axios.post('http://127.0.0.1:5000/admin/sites', payload, { headers })
+        await api.post('/admin/sites', payload, { headers })
       }
       setShowForm(false)
       fetchSites()
@@ -79,7 +78,7 @@ function AdminSites() {
 
   const handleDeactivate = async (site) => {
     try {
-      await axios.delete(`http://127.0.0.1:5000/admin/sites/${site.site_id}`, {
+                  await api.delete(`/admin/sites/${site.site_id}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       fetchSites()

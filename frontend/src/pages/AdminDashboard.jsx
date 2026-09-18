@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
 import ActiveSessionsTable from '../components/dashboard/ActiveSessionsTable'
 import HistoryTable from '../components/dashboard/HistoryTable'
+import { api } from '../config'
 
 function AdminDashboard() {
   const { user, token, logout } = useAuth()
@@ -17,7 +16,7 @@ function AdminDashboard() {
   useEffect(() => {
     const fetchSites = async () => {
       try {
-        const response = await axios.get('http://127.0.0.1:5000/admin/sites', {
+                        const response = await api.get('/admin/sites', {
           headers: { Authorization: `Bearer ${token}` },
         })
         setSites(response.data)
@@ -37,9 +36,9 @@ function AdminDashboard() {
 
     try {
       const headers = { Authorization: `Bearer ${token}` }
-      const [currentRes, historyRes] = await Promise.all([
-        axios.get(`http://127.0.0.1:5000/admin/sites/${site.site_id}/current`, { headers }),
-        axios.get(`http://127.0.0.1:5000/admin/sites/${site.site_id}/history`, { headers }),
+                  const [currentRes, historyRes] = await Promise.all([
+        api.get(`/admin/sites/${site.site_id}/current`, { headers }),
+        api.get(`/admin/sites/${site.site_id}/history`, { headers }),
       ])
       setSiteCurrent(currentRes.data)
       setSiteHistory(historyRes.data)

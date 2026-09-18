@@ -16,7 +16,7 @@ def create_app(config_class=Config):
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
-    CORS(app,  origins=["http://localhost:5173"])
+    CORS(app, origins=["http://localhost:5173", "https://upload-sprout-tribune.ngrok-free.dev"])
     from app import models
     from app.auth import auth_bp
     from app.entry import entry_bp

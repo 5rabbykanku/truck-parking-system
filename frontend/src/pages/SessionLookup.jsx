@@ -1,7 +1,6 @@
 import { useState } from 'react'
-import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
-
+import { api } from '../config'
 function SessionLookup() {
   const [code, setCode] = useState('')
   const [session, setSession] = useState(null)
@@ -21,10 +20,10 @@ function SessionLookup() {
 
     try {
       const [sessionResponse, feeResponse] = await Promise.all([
-        axios.get(`http://127.0.0.1:5000/sessions/lookup/${code}`, {
+                        api.get(`/sessions/lookup/${code}`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        axios.get(`http://127.0.0.1:5000/sessions/lookup/${code}/fee`, {
+                        api.get(`/sessions/lookup/${code}/fee`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
       ])
@@ -53,8 +52,8 @@ function SessionLookup() {
     setError('')
 
     try {
-      const response = await axios.post(
-        `http://127.0.0.1:5000/sessions/lookup/${session.parking_code}/pay`,
+            const response = await api.post(
+        `/sessions/lookup/${session.parking_code}/pay`,
         { payment_method: paymentMethod },
         { headers: { Authorization: `Bearer ${token}` } }
       )
@@ -74,8 +73,8 @@ function SessionLookup() {
     setError('')
 
     try {
-      const response = await axios.post(
-        `http://127.0.0.1:5000/sessions/lookup/${session.parking_code}/exit`,
+            const response = await api.post(
+        `/sessions/lookup/${session.parking_code}/exit`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       )

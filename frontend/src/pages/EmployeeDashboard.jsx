@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
 import ActiveSessionsTable from '../components/dashboard/ActiveSessionsTable'
+import { api } from '../config'
 
 function EmployeeDashboard() {
   const { user, token, logout } = useAuth()
@@ -12,7 +12,7 @@ function EmployeeDashboard() {
   useEffect(() => {
     const fetchActiveSessions = async () => {
       try {
-        const response = await axios.get('http://127.0.0.1:5000/dashboard/current', {
+                        const response = await api.get('/dashboard/current', {
           headers: { Authorization: `Bearer ${token}` },
         })
         setActiveSessions(response.data)

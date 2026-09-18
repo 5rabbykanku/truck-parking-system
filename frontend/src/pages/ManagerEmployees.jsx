@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import axios from 'axios'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { api } from '../config'
 
 function ManagerEmployees() {
   const { token } = useAuth()
@@ -14,7 +14,7 @@ function ManagerEmployees() {
 
   const fetchEmployees = async () => {
     try {
-      const response = await axios.get('http://127.0.0.1:5000/manager/employees', {
+                  const response = await api.get('/manager/employees', {
         headers: { Authorization: `Bearer ${token}` },
       })
       setEmployees(response.data)
@@ -47,14 +47,14 @@ function ManagerEmployees() {
 
     try {
       const headers = { Authorization: `Bearer ${token}` }
-      if (editingEmployee) {
-        await axios.put(
-          `http://127.0.0.1:5000/manager/employees/${editingEmployee.id}`,
+                  if (editingEmployee) {
+        await api.put(
+          `/manager/employees/${editingEmployee.id}`,
           { name: formData.name, email: formData.email },
           { headers }
         )
       } else {
-        await axios.post('http://127.0.0.1:5000/manager/employees', formData, { headers })
+        await api.post('/manager/employees', formData, { headers })
       }
       setShowForm(false)
       fetchEmployees()
@@ -69,7 +69,7 @@ function ManagerEmployees() {
 
   const handleDeactivate = async (employee) => {
     try {
-      await axios.delete(`http://127.0.0.1:5000/manager/employees/${employee.id}`, {
+                  await api.delete(`/manager/employees/${employee.id}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       fetchEmployees()
